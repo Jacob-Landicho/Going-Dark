@@ -1,0 +1,160 @@
+[gd_scene load_steps=18 format=3 uid="uid://bgn5xhaucw7bo"]
+
+[ext_resource type="Script" path="res://Assets/Enemy/turret.gd" id="1_0hlgu"]
+[ext_resource type="Texture2D" uid="uid://bc3k7s4u5j6a0" path="res://Assets/Enemy/GunTurret.png" id="1_bigb2"]
+[ext_resource type="PackedScene" uid="uid://b3tgjqai3frdd" path="res://Assets/Interaction/InteractionArea/interaction_area.tscn" id="3_udtn0"]
+[ext_resource type="PackedScene" uid="uid://kf8tqdlm8c5t" path="res://addons/vision_cone_2d/vision_cone_2d_template.tscn" id="4_ugfyu"]
+[ext_resource type="AudioStream" uid="uid://dl5svkiu277hk" path="res://Assets/Sounds/turret_hit.mp3" id="5_entas"]
+[ext_resource type="AudioStream" uid="uid://v1pduyj0v4jt" path="res://Assets/Sounds/turret_death.mp3" id="6_ru3ya"]
+[ext_resource type="AudioStream" uid="uid://ca6ko7jwok0di" path="res://Assets/Sounds/turret_shoot.mp3" id="7_7xi84"]
+[ext_resource type="AudioStream" uid="uid://c4jiwd21ogun3" path="res://Assets/Sounds/turret_disarm.mp3" id="8_i5i1d"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_usel5"]
+
+[sub_resource type="Shader" id="Shader_6qppf"]
+code = "// NOTE: Shader automatically converted from Godot Engine 4.3.stable's CanvasItemMaterial.
+
+shader_type canvas_item;
+render_mode blend_mix,light_only;
+
+uniform vec4 flash_color : source_color;
+uniform float flash_value : hint_range(0.0, 1.0, 0.1);
+
+void fragment() {
+	vec4 texture_color = texture(TEXTURE, UV);
+	COLOR = mix(texture_color, flash_color, flash_value);
+	COLOR.a = texture_color.a;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ec56w"]
+resource_local_to_scene = true
+shader = SubResource("Shader_6qppf")
+shader_parameter/flash_color = Color(1, 1, 1, 1)
+shader_parameter/flash_value = null
+
+[sub_resource type="Animation" id="Animation_xuy2k"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:material:shader_parameter/flash_value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [null]
+}
+
+[sub_resource type="Animation" id="Animation_0ecyt"]
+resource_name = "flash"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:material:shader_parameter/flash_value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [1.0, 1.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ryft3"]
+_data = {
+"RESET": SubResource("Animation_xuy2k"),
+"flash": SubResource("Animation_0ecyt")
+}
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_35nh0"]
+radius = 34.0
+height = 140.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_xw0jy"]
+radius = 36.0
+height = 144.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tr5d1"]
+radius = 54.0
+height = 176.0
+
+[node name="Turret" type="CharacterBody2D" node_paths=PackedStringArray("vision_renderer")]
+material = SubResource("CanvasItemMaterial_usel5")
+position = Vector2(105, 114)
+scale = Vector2(0.5, 0.5)
+collision_layer = 2
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_0hlgu")
+vision_renderer = NodePath("VisionCone2D/VisionConeRenderer")
+is_rotating = true
+rotation_speed = 1.0
+rotation_angle = 45
+metadata/_edit_group_ = true
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0, 0, 1)
+material = SubResource("ShaderMaterial_ec56w")
+texture = ExtResource("1_bigb2")
+
+[node name="HitFlash" type="AnimationPlayer" parent="Sprite2D"]
+libraries = {
+"": SubResource("AnimationLibrary_ryft3")
+}
+
+[node name="Marker2D" type="Marker2D" parent="."]
+position = Vector2(0, -100)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_35nh0")
+
+[node name="turret_hitbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 5
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="turret_hitbox"]
+shape = SubResource("CapsuleShape2D_xw0jy")
+
+[node name="TurretTimer" type="Timer" parent="."]
+wait_time = 0.7
+
+[node name="InteractionArea" parent="." instance=ExtResource("3_udtn0")]
+action_name = "disarm"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea"]
+shape = SubResource("CapsuleShape2D_tr5d1")
+
+[node name="VisionCone2D" parent="." instance=ExtResource("4_ugfyu")]
+rotation = 3.14159
+angle_deg = 10
+ray_count = 10
+collision_layer_mask = 3
+
+[node name="VisionConeRenderer" parent="VisionCone2D" index="0"]
+color = Color(0, 0, 0, 0)
+
+[node name="TurretHit" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("5_entas")
+bus = &"SFX"
+
+[node name="TurretDeath" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("6_ru3ya")
+bus = &"SFX"
+
+[node name="TurretShoot" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("7_7xi84")
+bus = &"SFX"
+
+[node name="TurretDisarm" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("8_i5i1d")
+bus = &"SFX"
+
+[connection signal="area_entered" from="turret_hitbox" to="." method="_on_turret_hitbox_area_entered"]
+[connection signal="timeout" from="TurretTimer" to="." method="_on_turret_timer_timeout"]
+[connection signal="body_entered" from="VisionCone2D/VisionConeArea" to="." method="_on_vision_cone_area_body_entered"]
+[connection signal="body_exited" from="VisionCone2D/VisionConeArea" to="." method="_on_vision_cone_area_body_exited"]
+
+[editable path="VisionCone2D"]
